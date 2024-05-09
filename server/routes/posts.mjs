@@ -75,26 +75,36 @@ router.post("/savedRecipes/add", async (req, res) => {
     console.error("Error adding saved recipe:", error);
     return res.status(500).send("An error occurred while adding saved recipe: " + error.message);
   }
+}); // Like a Recipe
+
+// Delete liked recipe
+router.delete("/savedRecipes/delete", async (req, res) => {
+  try {
+    // Extract the recipe ID and user ID from the request body
+    const { user_id, recipe_id } = req.body;
+
+    // Check if both user ID and recipe ID are provided
+    if (!user_id || !recipe_id) {
+      return res.status(400).send("Both user ID and recipe ID are required");
+    }
+
+    // Find and delete the liked recipe
+    const collection = await db.collection("savedRecipes");
+    const result = await collection.deleteOne({ _user_id: user_id, _recipe_id: recipe_id });
+
+    // Check if the deletion was successful
+    if (result.deletedCount === 1) {
+      return res.status(200).send("Liked recipe deleted successfully");
+    } else {
+      throw new Error("Failed to delete liked recipe");
+    }
+  } catch (error) {
+    console.error("Error deleting liked recipe:", error);
+    return res.status(500).send("An error occurred while deleting liked recipe: " + error.message);
+  }
 });
 
 
-
-
-
-
-
-// Delete a liked recipe
-router.delete("/:id", async (req, res) => {
-  let id=req.params.id
-  //id=id.slice(1) //remove the colon at the start 
-
-  const query = { _id: ObjectId(id) };
-
-  const collection = db.collection("savedRecipes");
-  let result = await collection.deleteOne(query);
-
-  res.send(result).status(200);
-});
 
 router.post("/savedRecipes", async (req, res) => {
   try {
