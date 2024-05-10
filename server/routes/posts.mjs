@@ -44,27 +44,23 @@ router.post("/users/signup", async (req, res) => {
 
 router.post("/savedRecipes/add", async (req, res) => {
   try {
-    // Extract data from request body
     const { _user_id, _recipe_id, _recipe_name, _recipe_thumbnail } = req.body;
 
-    // Basic validation to ensure required fields are provided
     if (!_user_id || !_recipe_id || !_recipe_name || !_recipe_thumbnail) {
       return res.status(400).send("All fields are required");
     }
 
-    // Construct document to insert into collection
-    const newSavedRecipe = {
-      _user_id,
-      _recipe_id,
-      _recipe_name,
-      _recipe_thumbnail
-    };
+    const existingRecipe = await db.collection("savedRecipes").findOne({ _user_id, _recipe_id });
 
-    // Insert document into collection
+    if (existingRecipe) {
+      return res.status(400).send("This recipe is already saved");
+    }
+
+    const newSavedRecipe = { _user_id, _recipe_id, _recipe_name, _recipe_thumbnail };
+
     const collection = await db.collection("savedRecipes");
     const result = await collection.insertOne(newSavedRecipe);
 
-    // Check if the insertion was successful
     if (result.acknowledged && result.insertedId) {
       return res.status(201).send("Saved recipe added successfully");
     } else {
@@ -74,7 +70,7 @@ router.post("/savedRecipes/add", async (req, res) => {
     console.error("Error adding saved recipe:", error);
     return res.status(500).send("An error occurred while adding saved recipe: " + error.message);
   }
-}); // Like a Recipe
+});
 
 // Delete liked recipe
 router.delete("/savedRecipes/delete", async (req, res) => {
@@ -103,6 +99,31 @@ router.delete("/savedRecipes/delete", async (req, res) => {
   }
 });
 
+router.get("/savedRecipes/check", async (req, res) => {
+  try {
+    const { userId, recipeId } = req.query;
+
+    // Basic validation to ensure required parameters are provided
+    if (!userId || !recipeId) {
+      return res.status(400).send("User ID and recipe ID are required");
+    }
+
+    // Check if the user has already liked the recipe
+    const existingLike = await db.collection("savedRecipes").findOne({
+      _user_id: userId,
+      _recipe_id:  Number.parseInt(recipeId)
+    });
+
+    if (existingLike) {
+      return res.send(true); // User has already liked the recipe
+    } else {
+      return res.send(false); // User has not liked the recipe
+    }
+  } catch (error) {
+    console.error("Error checking if recipe is liked:", error);
+    return res.status(500).send("An error occurred while checking if recipe is liked: " + error.message);
+  }
+});
 
 router.post("/savedRecipes", async (req, res) => {
   try {
